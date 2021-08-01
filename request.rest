@@ -1,0 +1,29 @@
+GET http://localhost:3000/users
+
+###
+
+POST http://localhost:3000/login/register
+Content-Type: application/json
+
+{
+
+    "email" : "manish@gmail.com",
+    "username" : "Manish",
+    "password" : "abcdefg"
+}
+
+###
+
+POST http://localhost:3000/login/loginuser
+Content-Type: application/json
+
+{
+
+    "username" : "manish@gmail.com",
+    "password" : "abcdefg"
+}
+
+###
+
+GET http://localhost:3000/printHello
+Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2Mjc4MDQ1OTF9.c2K2U0YmJSOWq282TNFMR43AksWUghp7AVGjo7wD7KY
