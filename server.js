@@ -10,6 +10,18 @@ const jwt = require('jsonwebtoken');
 app.use(express.json());
 const users = [];
 
+const cors = require('cors');
+
+
+app.use(cors());
+
+
+app.use(express.urlencoded({ extended: true }));
+
+
+app.use('/verify', require('./routes/verify'));
+
+
 //const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
 //const client = new MongoClient(uri);
 
@@ -138,4 +150,4 @@ app.post('/login/loginuser',async (req, res) => {
     
 });
 
-app.listen(3000);
+app.listen(3001);
