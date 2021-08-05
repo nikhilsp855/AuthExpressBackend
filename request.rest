@@ -1,29 +1,29 @@
-GET http://localhost:3000/users
+GET http://localhost:4000/users
 
 ###
 
-POST http://localhost:3000/login/register
+POST http://localhost:4000/login/register
 Content-Type: application/json
 
 {
 
-    "email" : "manish@gmail.com",
+    "email" : "kshitij",
+    "username" : "Nikhil",
+    "password" : "abcdefg"
+}
+
+###
+
+POST http://localhost:4000/login/loginuser
+Content-Type: application/json
+
+{
+
     "username" : "Manish",
-    "password" : "abcdefg"
+    "password" : "Manish@123"
 }
 
 ###
 
-POST http://localhost:3000/login/loginuser
-Content-Type: application/json
-
-{
-
-    "username" : "manish@gmail.com",
-    "password" : "abcdefg"
-}
-
-###
-
-GET http://localhost:3000/printHello
-Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2Mjc4MDQ1OTF9.c2K2U0YmJSOWq282TNFMR43AksWUghp7AVGjo7wD7KY
+GET http://localhost:4000/printHello
+Authorization:Bearer eyghbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2Mjc5ODkwNjB9.JAG_vje-3qC0Vf8ElBpHyKEUZUspJq9f-N9X3zZqTHk
