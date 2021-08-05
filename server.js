@@ -6,21 +6,19 @@ const express = require("express");
 const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
-app.use(express.json());
-const users = [];
-
 const cors = require('cors');
 
 
 app.use(cors());
 
-
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 
 app.use('/verify', require('./routes/verify'));
 
+
+
+const users = [];
 
 //const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
 //const client = new MongoClient(uri);
@@ -29,6 +27,7 @@ app.use('/verify', require('./routes/verify'));
 async function createUser(client, newListing) {
 
     const existingUser = await client.db("login_register").collection("logReg").findOne({email : newListing.email});
+    var status = 0;
     if(!existingUser) {
     
         const result = await client.db("login_register").collection("logReg").insertOne(newListing);
@@ -36,7 +35,9 @@ async function createUser(client, newListing) {
     }else {
 
         console.log(`Already exists user ${newListing.email}. Please choose other email id`);
+        status = 1;
     }
+    return status;
 }
 
 async function findUser(client, credential) {
@@ -98,12 +99,18 @@ app.post('/login/register',async (req, res)=>{
             await client.connect();
     
             const hashedPassword = await bcrypt.hash(req.body.password,10);
-            await createUser(client,{
+            const status = await createUser(client,{
     
-                email : req.body.email,
+                email : req.body.username,
                 name : req.body.username,
                 password : hashedPassword
             });
+
+            if(status==0) {
+                res.status(201).send();
+            }else if(status==1) {
+                res.status(202).send();
+            }
         } catch(e) {
 
             console.error(e);
@@ -112,7 +119,7 @@ app.post('/login/register',async (req, res)=>{
             await client.close();
         }
 
-        res.status(201).send();
+        //res.status(201).send();
     
 });
 
@@ -137,6 +144,9 @@ app.post('/login/loginuser',async (req, res) => {
                 const user = {name : req.body.email};
                 const accessToken = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET);
                 res.json({accessToken : accessToken});
+                res.status(201).send();
+            }else {
+                res.status(202).send();
             }
         } catch(e) {
 
@@ -146,8 +156,8 @@ app.post('/login/loginuser',async (req, res) => {
 
             await client.close();
         }
-        res.status(201).send();
+        //res.status(201).send();
     
 });
 
-app.listen(3001);
+app.listen(4000);
