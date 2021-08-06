@@ -1,6 +1,7 @@
 const client = require('twilio')(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 
 exports.getCode = async (req, res) => {
+    console.log(req.query.phonenumber);
     client
         .verify
         .services(process.env.VERIFY_SERVICE_SID)
@@ -12,9 +13,11 @@ exports.getCode = async (req, res) => {
         .then(data => {
             res.status(200).send(data);
         })
+    console.log("Reached end of getCode fun");    
 };
 
 exports.verifyCode = async (req, res) => {
+    console.log("Verify code");
     client
         .verify
         .services(process.env.VERIFY_SERVICE_SID)
