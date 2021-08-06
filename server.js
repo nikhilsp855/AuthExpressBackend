@@ -54,7 +54,7 @@ async function findUser(client, credential) {
         
     }else {
 
-        console.log(`No listings found with the name ${credential.email}`);
+        console.log(`No listings found with the name ${credential.name}`);
     }
 }
 
@@ -117,11 +117,11 @@ app.post('/login/loginuser',async (req, res) => {
         try {
     
             await client.connect();
-            const isFound = await findUser(client,{name : req.body.name, password : req.body.password});
+            const isFound = await findUser(client,{name : req.body.username, password : req.body.password});
 
             if(isFound) {
                 
-                const user = {name : req.body.name};
+                const user = {name : req.body.username};
                 const accessToken = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET);
                 res.json({accessToken : accessToken});
                 res.status(201).send();
