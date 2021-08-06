@@ -26,7 +26,7 @@ const users = [];
 
 async function createUser(client, newListing) {
 
-    const existingUser = await client.db("login_register").collection("logReg").findOne({email : newListing.email});
+    const existingUser = await client.db("login_register").collection("logReg").findOne({name : newListing.name});
     var status = 0;
     if(!existingUser) {
     
@@ -34,7 +34,7 @@ async function createUser(client, newListing) {
         console.log(`New listing created with following id : ${result.insertedId}`);
     }else {
 
-        console.log(`Already exists user ${newListing.email}. Please choose other email id`);
+        console.log(`Already exists user ${newListing.name}. Please choose other email id`);
         status = 1;
     }
     return status;
@@ -42,11 +42,11 @@ async function createUser(client, newListing) {
 
 async function findUser(client, credential) {
 
-    const result = await client.db("login_register").collection("logReg").findOne({email : credential.email});
+    const result = await client.db("login_register").collection("logReg").findOne({name : credential.name});
 
     if(result && await bcrypt.compare(credential.password,result.password)) {
         
-        console.log(`Found a listing in the collection with the name ${credential.email}`);
+        console.log(`Found a listing in the collection with the name ${credential.name}`);
         console.log(result);
 
         return true;
@@ -85,43 +85,23 @@ app.get('/logReg',(req,res)=>{
 
 app.post('/login/register',async (req, res)=>{
 
-    try {
-
         const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
         var client = new MongoClient(uri);
-    }catch {
-
-        res.status(500).send();
-    }
-
-        try{
-
             await client.connect();
-    
+            console.log(req.body.pno)
             const hashedPassword = await bcrypt.hash(req.body.password,10);
             const status = await createUser(client,{
-    
-                email : req.body.username,
+
                 name : req.body.username,
-                password : hashedPassword
-            });
-
-            if(status==0) {
-                res.status(201).send();
-            }else if(status==1) {
-                res.status(202).send();
-            }
-        } catch(e) {
-
-            console.error(e);
-        } finally {
+                password : hashedPassword,
+                pno:req.body.pno
+            })
+            .then(user=>{
+                res.json("success");
+            })
+            .catch(err=>res.status(400).json("user already exists"));
     
-            await client.close();
-        }
-
-        //res.status(201).send();
-    
-});
+})
 
 app.post('/login/loginuser',async (req, res) => {
 
@@ -137,11 +117,11 @@ app.post('/login/loginuser',async (req, res) => {
         try {
     
             await client.connect();
-            const isFound = await findUser(client,{email : req.body.username, password : req.body.password});
+            const isFound = await findUser(client,{name : req.body.name, password : req.body.password});
 
             if(isFound) {
                 
-                const user = {name : req.body.email};
+                const user = {name : req.body.name};
                 const accessToken = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET);
                 res.json({accessToken : accessToken});
                 res.status(201).send();
