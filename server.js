@@ -40,6 +40,24 @@ async function createUser(client, newListing) {
     return status;
 }
 
+
+async function createSP(client, newListing) {
+
+    const existingUser = await client.db("login_register").collection("logRegSP").findOne({name : newListing.name});
+    var status = 0;
+    if(!existingUser) {
+    
+        const result = await client.db("login_register").collection("logRegSP").insertOne(newListing);
+        console.log(`New listing created with following id : ${result.insertedId}`);
+    }else {
+
+        console.log(`Already exists user ${newListing.name}. Please choose other email id`);
+        status = 1;
+    }
+    return status;
+}
+
+
 async function findUser(client, credential) {
 
     const result = await client.db("login_register").collection("logReg").findOne({name : credential.name});
@@ -55,6 +73,26 @@ async function findUser(client, credential) {
     }else {
 
         console.log(`No listings found with the name ${credential.name}`);
+        return false;
+    }
+}
+
+async function findSP(client, credential) {
+
+    const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
+
+    if(result && await bcrypt.compare(credential.password,result.password)) {
+        
+        console.log(`Found a listing in the collection with the name ${credential.name}`);
+        console.log(result);
+
+        return true;
+        
+        
+    }else {
+
+        console.log(`No listings found with the name ${credential.name}`);
+        return false;
     }
 }
 
@@ -101,7 +139,32 @@ app.post('/login/register',async (req, res)=>{
             })
             .catch(err=>res.status(400).json("user already exists"));
     
-})
+});
+
+
+app.post('/splogin/registerSP',async (req, res)=>{
+
+    const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+    var client = new MongoClient(uri);
+        await client.connect();
+        console.log(req.body.pno)
+        const hashedPassword = await bcrypt.hash(req.body.password,10);
+        const status = await createSP(client,{
+
+            name : req.body.username,
+            password : hashedPassword,
+            pno:req.body.pno,
+            email : req.body.email,
+            servname : req.body.servname
+            //file : req.body.file
+        })
+        .then(user=>{
+            res.json("success");
+        })
+        .catch(err=>res.status(400).json("user already exists"));
+
+});
+
 
 app.post('/login/loginuser',async (req, res) => {
 
@@ -118,6 +181,43 @@ app.post('/login/loginuser',async (req, res) => {
     
             await client.connect();
             const isFound = await findUser(client,{name : req.body.username, password : req.body.password});
+
+            if(isFound) {
+                
+                const user = {name : req.body.username};
+                const accessToken = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET);
+                res.json({accessToken : accessToken});
+                res.status(201).send();
+            }else {
+                res.status(202).send();
+            }
+        } catch(e) {
+
+            console.error(e);
+            res.status(500).send();
+        }finally {
+
+            await client.close();
+        }
+        //res.status(201).send();
+    
+});
+
+app.post('/splogin/loginSP',async (req, res) => {
+
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+        try {
+    
+            await client.connect();
+            const isFound = await findSP(client,{name : req.body.username, password : req.body.password});
 
             if(isFound) {
                 
