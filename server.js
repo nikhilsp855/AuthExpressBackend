@@ -96,6 +96,17 @@ async function findSP(client, credential) {
     }
 }
 
+async function findSPReturnCustomer(client, credential) {
+
+    const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
+    if(result) {
+
+        console.log("result.customer = ",result.customer);
+        return result.customer;
+    }
+    return [];
+}
+
 function authenticateToken(req,res,next) {
 
     const authHeader = req.headers['authorization']
@@ -109,6 +120,16 @@ function authenticateToken(req,res,next) {
         req.user = user
         next()
     })
+}
+
+function parseJwt (token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(Buffer.from(base64,'base64').toString().split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+  
+    return JSON.parse(jsonPayload);
 }
 
 app.get('/printHello',authenticateToken,(req,res)=>{
@@ -155,7 +176,28 @@ app.post('/splogin/registerSP',async (req, res)=>{
             password : hashedPassword,
             pno:req.body.pno,
             email : req.body.email,
-            servname : req.body.servname
+            servname : req.body.servname,
+            customer : [
+
+                {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
+                {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
+                {id:3,pic : null, name: 'Salman Khan', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
+                {id:4,pic : null, name: 'Akshay Kumar', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
+                {id:5,pic : null, name: 'Gal Gadot', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'},
+            
+                {id:6, pic : null, name: 'six', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
+                {id:7,pic : null, name: 'seven', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
+                {id:8,pic : null, name: 'eight', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
+                {id:9,pic : null, name: 'nine', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
+                {id:10,pic : null, name: 'ten', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'},
+            
+            
+                {id:11, pic : null, name: 'Eleven', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
+                {id:12,pic : null, name: 'twelve', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
+                {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
+                {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
+                {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'}
+            ]
             //file : req.body.file
         })
         .then(user=>{
@@ -238,6 +280,48 @@ app.post('/splogin/loginSP',async (req, res) => {
         }
         //res.status(201).send();
     
+});
+
+app.post('/serviceproviders',authenticateToken,async (req,res)=>{
+
+    console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            const customer = await findSPReturnCustomer(client,{name : payload.name});
+
+            res.json({customerList : customer});
+            
+            if(customer) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
 });
 
 app.listen(4000);
