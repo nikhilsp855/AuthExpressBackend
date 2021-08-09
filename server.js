@@ -180,11 +180,11 @@ app.post('/login/loginuser',async (req, res) => {
         try {
     
             await client.connect();
-            const isFound = await findUser(client,{name : req.body.username, password : req.body.password});
-
+            const isFound = await findUser(client,{name : req.body.name, password : req.body.password});
+            console.log(req.body.name)
             if(isFound) {
                 
-                const user = {name : req.body.username};
+                const user = {name : req.body.name};
                 const accessToken = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET);
                 res.json({accessToken : accessToken});
                 res.status(201).send();
