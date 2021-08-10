@@ -107,6 +107,18 @@ async function findSPReturnCustomer(client, credential) {
     return [];
 }
 
+async function getServiceProviders(client, credential) {
+
+    const result = await client.db("login_register").collection("logRegSP").findOne({city : credential.city});
+    if(result) {
+
+        console.log("result.customer = ",result);
+        return result;
+    }
+    return [];
+}
+
+
 function authenticateToken(req,res,next) {
 
     const authHeader = req.headers['authorization']
@@ -177,7 +189,8 @@ app.post('/splogin/registerSP',async (req, res)=>{
             pno:req.body.pno,
             email : req.body.email,
             servname : req.body.servname,
-            customer : [
+            city:req.body.city
+           /* customer : [
 
                 {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
                 {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
@@ -197,7 +210,7 @@ app.post('/splogin/registerSP',async (req, res)=>{
                 {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
                 {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
                 {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'}
-            ]
+            ]*/
             //file : req.body.file
         })
         .then(user=>{
@@ -281,6 +294,46 @@ app.post('/splogin/loginSP',async (req, res) => {
         //res.status(201).send();
     
 });
+
+
+app.post('/getserviceproviders',async (req, res) => {
+
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+        try {
+    
+            await client.connect();
+            console.log(req.body.city)
+            const providers= await getServiceProviders(client,{city : req.body.city});
+            res.json(providers);
+
+            if(providers) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        }
+     catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+    
+});
+
+
 
 app.post('/serviceproviders',authenticateToken,async (req,res)=>{
 
