@@ -108,14 +108,15 @@ async function findSPReturnCustomer(client, credential) {
 }
 
 async function getServiceProviders(client, credential) {
+    
+    return client.db("login_register").collection("logRegSP").find({$and:[{city:{$eq:credential.city}},{servname:{$eq:credential.servname}}]}) 
+    .toArray()
+    .then(items=>{
+      items.forEach(console.log);
 
-    const result = await client.db("login_register").collection("logRegSP").findOne({city : credential.city});
-    if(result) {
-
-        console.log("result.customer = ",result);
-        return result;
-    }
-    return [];
+      return items;
+    })
+    .catch(err => console.error(`Failed to find documents: ${err}`))
 }
 
 async function findSPReturnSubServices(client, credential) {
@@ -342,9 +343,11 @@ app.post('/getserviceproviders',async (req, res) => {
         try {
     
             await client.connect();
-            console.log(req.body.city)
-            const providers= await getServiceProviders(client,{city : req.body.city});
-            res.json(providers);
+            
+            console.log(req.body.service)
+            const providers= await getServiceProviders(client,{city : req.body.city, servname:req.body.service});
+            console.log(providers)
+            res.json({providers});
 
             if(providers) {
             
