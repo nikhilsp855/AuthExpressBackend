@@ -101,7 +101,7 @@ async function findSPReturnCustomer(client, credential) {
     const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
     if(result) {
 
-        console.log("result.customer = ",result.customer);
+        //console.log("result.customer = ",result.customer);
         return result.customer;
     }
     return [];
@@ -112,7 +112,7 @@ async function findSPReturnSubServices(client, credential) {
     const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
     if(result) {
 
-        console.log("result.subServices = ",result.subServices);
+        //console.log("result.subServices = ",result.subServices);
         return result.subServices;
     }
     return [];
@@ -151,17 +151,26 @@ async function updateListingByName(client, nameOfListing, updatedListing) {
 
 async function updateListingByNameEditFieldName(client, nameOfListing, updatedListing) {
 
+    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing,"subServices.id":updatedListing.id},{ $set : {"subServices.$.name":updatedListing.editedField.name}})
 }
 
 async function updateListingByNameEditFieldCost(client, nameOfListing, updatedListing) {
 
+    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing,"subServices.id":updatedListing.id},{ $set : {"subServices.$.cost":updatedListing.editedField.cost}})
 }
 
 async function updateListingByNameEditFieldTime(client, nameOfListing, updatedListing) {
 
+    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing,"subServices.id":updatedListing.id},{ $set : {"subServices.$.time":updatedListing.editedField.time}})
+}
+
+async function updateListingByNameDeleteSubService(client, nameOfListing, updatedListing) {
+
+    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
+    const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $pull : { subServices : { id : updatedListing.id }}});
 }
 
 
@@ -180,7 +189,7 @@ app.post('/login/register',async (req, res)=>{
         const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
         var client = new MongoClient(uri);
             await client.connect();
-            console.log(req.body.pno)
+            //console.log(req.body.pno)
             const hashedPassword = await bcrypt.hash(req.body.password,10);
             const status = await createUser(client,{
 
@@ -201,7 +210,7 @@ app.post('/splogin/registerSP',async (req, res)=>{
     const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
     var client = new MongoClient(uri);
         await client.connect();
-        console.log(req.body.pno)
+        //console.log(req.body.pno)
         const hashedPassword = await bcrypt.hash(req.body.password,10);
         const status = await createSP(client,{
 
@@ -318,7 +327,7 @@ app.post('/splogin/loginSP',async (req, res) => {
 
 app.post('/serviceproviders',authenticateToken,async (req,res)=>{
 
-    console.log('Hello');
+    //console.log('Hello');
     try {
         
         const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
@@ -360,7 +369,7 @@ app.post('/serviceproviders',authenticateToken,async (req,res)=>{
 
 app.get('/serviceproviders/updateDetails',authenticateToken,async (req,res)=>{
 
-    console.log('Hello');
+    //console.log('Hello');
     try {
         
         const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
@@ -402,7 +411,7 @@ app.get('/serviceproviders/updateDetails',authenticateToken,async (req,res)=>{
 
 app.post('/serviceproviders/updateDetails/addSubService',authenticateToken,async (req,res)=>{
 
-    console.log('Hello');
+    //console.log('Hello');
     try {
         
         const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
@@ -420,7 +429,7 @@ app.post('/serviceproviders/updateDetails/addSubService',authenticateToken,async
         if(token!=null) {
             
             const payload = parseJwt(token);
-            console.log("req.body.newService = ",req.body.newService);
+            //console.log("req.body.newService = ",req.body.newService);
             await updateListingByName(client,payload.name,{subServices : req.body.newService});
             res.status(201).send();
         }
@@ -436,7 +445,7 @@ app.post('/serviceproviders/updateDetails/addSubService',authenticateToken,async
 
 app.post('/serviceproviders/updateDetails/editSubService',authenticateToken,async (req,res)=>{
 
-    console.log('Hello');
+    //console.log("editSubService called");
     try {
         
         const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
@@ -465,6 +474,41 @@ app.post('/serviceproviders/updateDetails/editSubService',authenticateToken,asyn
              
                 await updateListingByNameEditFieldTime(client,payload.name,{editedField : req.body.editedField,id : req.body.id});
             }
+            res.status(201).send();
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/serviceproviders/updateDetails/deleteSubService',authenticateToken,async (req,res)=>{
+
+    //console.log("editSubService called");
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+                
+            await updateListingByNameDeleteSubService(client,payload.name,{id : req.body.id});
+            
             res.status(201).send();
         }
     } catch(e) {
