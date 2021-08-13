@@ -163,26 +163,48 @@ async function updateListingByName(client, nameOfListing, updatedListing) {
 
 async function updateListingByNameEditFieldName(client, nameOfListing, updatedListing) {
 
-    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
+    //console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing,"subServices.id":updatedListing.id},{ $set : {"subServices.$.name":updatedListing.editedField.name}})
 }
 
 async function updateListingByNameEditFieldCost(client, nameOfListing, updatedListing) {
 
-    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
+    //console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing,"subServices.id":updatedListing.id},{ $set : {"subServices.$.cost":updatedListing.editedField.cost}})
 }
 
 async function updateListingByNameEditFieldTime(client, nameOfListing, updatedListing) {
 
-    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
+    //console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing,"subServices.id":updatedListing.id},{ $set : {"subServices.$.time":updatedListing.editedField.time}})
 }
 
 async function updateListingByNameDeleteSubService(client, nameOfListing, updatedListing) {
 
-    console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
+    //console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $pull : { subServices : { id : updatedListing.id }}});
+}
+
+async function findSPReturnPendingCustomer(client, credential) {
+
+    const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
+    if(result) {
+
+        //console.log("result.customer = ",result.customer);
+        return result.pendingCustomer;
+    }
+    return [];
+}
+
+async function updateListingByNameDeletePendingCustomer(client, nameOfListing, updatedListing) {
+
+    //console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
+    const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $pull : { pendingCustomer : { id : updatedListing.id }}});
+}
+
+async function updateListingByNameAddCustomer(client, nameOfListing, updatedListing) {
+
+    const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $push : updatedListing})
 }
 
 
@@ -231,28 +253,30 @@ app.post('/splogin/registerSP',async (req, res)=>{
             pno:req.body.pno,
             email : req.body.email,
             servname : req.body.servname,
-            city:req.body.city
-           /* customer : [
+            city:req.body.city,
+            subServices : [],
+            customer : [],
+            pendingCustomer : [
 
-                {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
-                {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
-                {id:3,pic : null, name: 'Salman Khan', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
-                {id:4,pic : null, name: 'Akshay Kumar', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
-                {id:5,pic : null, name: 'Gal Gadot', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'},
+                {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
+                {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Wash Basin Installation',contact:'12345'},
+                {id:3,pic : null, name: 'Salman Khan', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Motor Installation',contact:'12345'},
+                {id:4,pic : null, name: 'Akshay Kumar', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Wash Basin Installation',contact:'12345'},
+                {id:5,pic : null, name: 'Gal Gadot', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Motor Installation',contact:'12345'},
             
-                {id:6, pic : null, name: 'six', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
-                {id:7,pic : null, name: 'seven', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
-                {id:8,pic : null, name: 'eight', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
-                {id:9,pic : null, name: 'nine', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
-                {id:10,pic : null, name: 'ten', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'},
+                {id:6, pic : null, name: 'six', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Wash Basin Installation',contact:'12345'},
+                {id:7,pic : null, name: 'seven', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Water Tank Installation',contact:'12345'},
+                {id:8,pic : null, name: 'eight', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Motor Installation',contact:'12345'},
+                {id:9,pic : null, name: 'nine', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Water Tank Installation',contact:'12345'},
+                {id:10,pic : null, name: 'ten', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'},
             
             
-                {id:11, pic : null, name: 'Eleven', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
-                {id:12,pic : null, name: 'twelve', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
-                {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
-                {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
-                {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'}
-            ]*/
+                {id:11, pic : null, name: 'Eleven', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
+                {id:12,pic : null, name: 'twelve', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Water Tank Installation',contact:'12345'},
+                {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'},
+                {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
+                {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'}
+            ]
             //file : req.body.file
         })
         .then(user=>{
@@ -563,6 +587,117 @@ app.post('/serviceproviders/updateDetails/deleteSubService',authenticateToken,as
                 
             await updateListingByNameDeleteSubService(client,payload.name,{id : req.body.id});
             
+            res.status(201).send();
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.get('/serviceproviders/pendingCustomer',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            const customer = await findSPReturnPendingCustomer(client,{name : payload.name});
+
+            res.json({pendingCustomerList : customer});
+            
+            if(customer) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/serviceproviders/pendingCustomer/removeCustomer',authenticateToken,async (req,res)=>{
+
+    //console.log("editSubService called");
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+                
+            await updateListingByNameDeletePendingCustomer(client,payload.name,{id : req.body.id});
+            
+            res.status(201).send();
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/serviceproviders/addCustomer',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            //console.log("req.body.newService = ",req.body.newService);
+            await updateListingByNameAddCustomer(client,payload.name,{customer : req.body.newCustomer});
             res.status(201).send();
         }
     } catch(e) {
