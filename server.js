@@ -107,6 +107,18 @@ async function findSPReturnCustomer(client, credential) {
     return [];
 }
 
+async function getServiceProviders(client, credential) {
+    
+    return client.db("login_register").collection("logRegSP").find({$and:[{city:{$eq:credential.city}},{servname:{$eq:credential.servname}}]}) 
+    .toArray()
+    .then(items=>{
+      items.forEach(console.log);
+
+      return items;
+    })
+    .catch(err => console.error(`Failed to find documents: ${err}`))
+}
+
 async function findSPReturnSubServices(client, credential) {
 
     const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
@@ -219,8 +231,8 @@ app.post('/splogin/registerSP',async (req, res)=>{
             pno:req.body.pno,
             email : req.body.email,
             servname : req.body.servname,
-            subServices : [],
-            customer : [
+            city:req.body.city
+           /* customer : [
 
                 {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green'},
                 {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow'},
@@ -240,7 +252,7 @@ app.post('/splogin/registerSP',async (req, res)=>{
                 {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red'},
                 {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green'},
                 {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red'}
-            ]
+            ]*/
             //file : req.body.file
         })
         .then(user=>{
@@ -265,11 +277,11 @@ app.post('/login/loginuser',async (req, res) => {
         try {
     
             await client.connect();
-            const isFound = await findUser(client,{name : req.body.username, password : req.body.password});
-
+            const isFound = await findUser(client,{name : req.body.name, password : req.body.password});
+            console.log(req.body.name)
             if(isFound) {
                 
-                const user = {name : req.body.username};
+                const user = {name : req.body.name};
                 const accessToken = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET);
                 res.json({accessToken : accessToken});
                 res.status(201).send();
@@ -324,6 +336,48 @@ app.post('/splogin/loginSP',async (req, res) => {
         //res.status(201).send();
     
 });
+
+
+app.post('/getserviceproviders',async (req, res) => {
+
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+        try {
+    
+            await client.connect();
+            
+            console.log(req.body.service)
+            const providers= await getServiceProviders(client,{city : req.body.city, servname:req.body.service});
+            console.log(providers)
+            res.json({providers});
+
+            if(providers) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        }
+     catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+    
+});
+
+
 
 app.post('/serviceproviders',authenticateToken,async (req,res)=>{
 
