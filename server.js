@@ -208,6 +208,24 @@ async function updateListingByNameAddCustomer(client, nameOfListing, updatedList
 }
 
 
+async function BookingCustomer(client, credential) {
+
+    const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
+    if(result) {
+
+        //console.log("result.customer = ",result.customer);
+        return result.customer;
+    }
+    return [];
+}
+
+
+async function confirmBooking(client,credential,newentries){
+    console.log(newentries)
+    console.log(credential)
+    const result=await client.db("login_register").collection("logRegSP").updateOne({name : credential.name},{$push:{pendingCustomer:newentries.pendingCustomer}});
+}
+
 app.get('/printHello',authenticateToken,(req,res)=>{
 
     console.log('Hello');
@@ -362,7 +380,7 @@ app.post('/splogin/loginSP',async (req, res) => {
 });
 
 
-app.post('/getserviceproviders',async (req, res) => {
+app.post('/booking',async (req, res) => {
 
     try {
         
@@ -377,8 +395,9 @@ app.post('/getserviceproviders',async (req, res) => {
     
             await client.connect();
             
+            
             console.log(req.body.service)
-            const providers= await getServiceProviders(client,{city : req.body.city, servname:req.body.service});
+            const providers= await BookingCustomer(client,{name:req.body.name});
             console.log(providers)
             res.json({providers});
 
@@ -400,6 +419,49 @@ app.post('/getserviceproviders',async (req, res) => {
     }
     
 });
+
+
+app.post('/getserviceproviders',authenticateToken,async(req,res)=>{
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null){
+        console.log(token)
+        console.log(req.body.service)
+        const providers= await getServiceProviders(client,{city : req.body.city, servname:req.body.service});
+        console.log(providers)
+        res.json({providers});
+
+        if(providers) {
+        
+            res.status(201).send();
+        }else {
+        
+            res.status(202).send();
+        }
+    }
+}
+ catch(e) {
+
+    console.error(e);
+    res.status(500).send();
+}finally {
+
+    await client.close();
+}
+
+
+})
 
 
 
@@ -701,6 +763,32 @@ app.post('/serviceproviders/addCustomer',authenticateToken,async (req,res)=>{
             res.status(201).send();
         }
     } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/confirmbooking',async (req,res)=>{
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+     await client.connect();
+     console.log(req.body.pendingCustomers)
+     console.log(req.body.providers)
+     await confirmBooking(client,{name:req.body.providers},{pendingCustomer : req.body.pendingCustomers});
+    }
+    catch(e) {
 
         console.error(e);
         res.status(500).send();
