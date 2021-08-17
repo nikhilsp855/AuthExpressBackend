@@ -1,5 +1,8 @@
 require('dotenv').config();
 
+const upload = require("./middleware/upload");
+
+
 const { MongoClient }  = require('mongodb');
 
 const express = require("express");
@@ -65,7 +68,7 @@ async function findUser(client, credential) {
     if(result && await bcrypt.compare(credential.password,result.password)) {
         
         console.log(`Found a listing in the collection with the name ${credential.name}`);
-        console.log(result);
+        //console.log(result);
 
         return true;
         
@@ -84,7 +87,7 @@ async function findSP(client, credential) {
     if(result && await bcrypt.compare(credential.password,result.password)) {
         
         console.log(`Found a listing in the collection with the name ${credential.name}`);
-        console.log(result);
+        //console.log(result);
 
         return true;
         
@@ -207,6 +210,79 @@ async function updateListingByNameAddCustomer(client, nameOfListing, updatedList
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $push : updatedListing})
 }
 
+async function getImageUrl(client,nameOfListing) {
+    
+    let fileDup = null;
+    let imageUrl = "";
+
+    try {
+        await client.db("login_register").collection("logRegSP").findOne({name : nameOfListing})
+            .then(result => client.db("myFirstDatabase").collection("photos.files").findOne({filename : result.profilePic}))
+            .then(file => {
+                fileDup = file;
+                return client.db("myFirstDatabase").collection("photos.chunks").findOne({files_id : file._id})
+            })
+            .then(chunkFile => {
+
+                const chunks = chunkFile.data.toString('base64');
+                //console.log("chunks = ",chunks);      
+                if(!chunks || chunks.length === 0){            
+                    //No data found            
+                    console.log("No data found");          
+                }else {
+    
+                    /*let fileData = [];          
+                    for(let i=0; i<chunks.length;i++){            
+                        //This is in Binary JSON or BSON format, which is stored               
+                        //in fileData array in base64 endocoded string format               
+     
+                        fileData.push(chunks[i].data.toString('base64'));          
+                    }*/
+    
+        //Display the chunks using the data URI format          
+                    //let finalFile = 'data:' + fileDup.contentType + ';base64,' + fileData.join('');
+                    let finalFile = 'data:' + fileDup.contentType + ';base64,' + chunks;        
+        /*res.render('imageView', {
+        title: 'Image File', 
+        message: 'Image loaded from MongoDB GridFS', 
+        imgurl: finalFile
+        });*/
+                    //console.log("finalFile = ",finalFile);
+                    imageUrl = finalFile;
+                }
+            })
+    }catch(err) {
+
+        console.log(err);
+    }
+
+    return imageUrl;
+
+}
+
+async function updateListingByNameSetStoreName(client, nameOfListing, updatedListing) {
+
+    const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $set : updatedListing})
+}
+
+async function updateListingByNameSetSloganName(client, nameOfListing, updatedListing) {
+
+    const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $set : updatedListing})
+}
+
+async function findSPReturnStoreNameAndSlogan(client, credential) {
+
+    const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
+    if(result) {
+
+        //console.log("result.subServices = ",result.subServices);
+        return {storeName : result.storeName, slogan : result.slogan};
+    }
+    return {storeName : "", slogan : ""};
+}
+
+
+
 
 async function BookingCustomer(client, credential) {
 
@@ -274,6 +350,8 @@ app.post('/splogin/registerSP',async (req, res)=>{
             city:req.body.city,
             subServices : [],
             customer : [],
+            storeName : "",
+            slogan : "",
             pendingCustomer : [
 
                 {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
@@ -294,7 +372,8 @@ app.post('/splogin/registerSP',async (req, res)=>{
                 {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'},
                 {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
                 {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'}
-            ]
+            ],
+            profilePic : null
             //file : req.body.file
         })
         .then(user=>{
@@ -320,7 +399,7 @@ app.post('/login/loginuser',async (req, res) => {
     
             await client.connect();
             const isFound = await findUser(client,{name : req.body.name, password : req.body.password});
-            console.log(req.body.name)
+            //console.log(req.body.name)
             if(isFound) {
                 
                 const user = {name : req.body.name};
@@ -603,7 +682,7 @@ app.post('/serviceproviders/updateDetails/editSubService',authenticateToken,asyn
         if(token!=null) {
             
             const payload = parseJwt(token);
-            console.log("req.body.newService = ",req.body.editedField);
+            //console.log("req.body.newService = ",req.body.editedField);
             if(req.body.editedField.name) {
                 
                 await updateListingByNameEditFieldName(client,payload.name,{editedField : req.body.editedField,id : req.body.id});
@@ -772,7 +851,30 @@ app.post('/serviceproviders/addCustomer',authenticateToken,async (req,res)=>{
     }
 });
 
-app.post('/confirmbooking',async (req,res)=>{
+
+app.post('/serviceproviders/updateDetails/uploadImage',authenticateToken, async (req,res)=>{
+
+    
+    try {
+        //console.log("req.body.file = ",req.body.file);
+        await upload(req, res);
+    
+        //console.log("req = ",req);
+        //if (req.file == undefined) {
+          //return res.send(`You must select a file.`);
+        //}
+
+    
+        //res.send(`File has been uploaded.`);
+      } catch (error) {
+        console.log(error);
+        //res.send(`Error when trying upload image: ${error}`);
+      }
+});
+
+app.get('/serviceproviders/updateDetails/retrieveImage',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
     try {
         
         const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
@@ -783,12 +885,24 @@ app.post('/confirmbooking',async (req,res)=>{
     }
 
     try {
-     await client.connect();
-     console.log(req.body.pendingCustomers)
-     console.log(req.body.providers)
-     await confirmBooking(client,{name:req.body.providers},{pendingCustomer : req.body.pendingCustomers});
-    }
-    catch(e) {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            //console.log("req.body.newService = ",req.body.newService);
+
+            //console.log("Before");
+            const imageUrl = await getImageUrl(client,payload.name);
+            //console.log(imageUrl);
+            //console.log("Helloooo");
+            res.json({imageUrl:imageUrl});
+            //await updateListingByNameAddCustomer(client,payload.name,{customer : req.body.newCustomer});
+            res.status(201).send();
+        }
+    } catch(e) {
 
         console.error(e);
         res.status(500).send();
@@ -796,6 +910,140 @@ app.post('/confirmbooking',async (req,res)=>{
 
         await client.close();
     }
+});
+
+app.post('/serviceproviders/updateDetails/setStoreName',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            //console.log("req.body.newService = ",req.body.newService);
+            await updateListingByNameSetStoreName(client,payload.name,{storeName : req.body.storeName});
+            res.status(201).send();
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/serviceproviders/updateDetails/setSloganName',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            console.log("req.body.slogan = ",req.body.slogan);
+            await updateListingByNameSetSloganName(client,payload.name,{slogan : req.body.slogan});
+            res.status(201).send();
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.get('/serviceproviders/updateDetails/getStoreNameAndSlogan',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            const data = await findSPReturnStoreNameAndSlogan(client,{name : payload.name});
+
+            res.json({data : data});
+            
+            if(subServices) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        }
+    }catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/confirmbooking',async (req,res)=>{
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+    try{
+    await client.connect();
+    console.log(req.body.pendingCustomers)
+    console.log(req.body.providers)
+    await confirmBooking(client,{name:req.body.providers},{pendingCustomer : req.body.pendingCustomers});
+   }
+   catch(e) {
+
+    console.error(e);
+    res.status(500).send();
+}finally {
+
+    await client.close();
+}
 });
 
 app.listen(4000);
