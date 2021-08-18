@@ -299,7 +299,7 @@ async function BookingCustomer(client, credential) {
 async function confirmBooking(client,credential,newentries){
     console.log(newentries)
     console.log(credential)
-    const result=await client.db("login_register").collection("logRegSP").updateOne({name : credential.name},{$push:{pendingCustomer:newentries.pendingCustomer}});
+    const result=await client.db("login_register").collection("logRegSP").updateOne({name : credential.name},{$push:{pendingCustomer:newentries}});
 }
 
 app.get('/printHello',authenticateToken,(req,res)=>{
