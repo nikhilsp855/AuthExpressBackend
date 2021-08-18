@@ -50,11 +50,27 @@ async function createSP(client, newListing) {
     var status = 0;
     if(!existingUser) {
     
-        const result = await client.db("login_register").collection("logRegSP").insertOne(newListing);
+        const result = await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{ $push : newListing});
         console.log(`New listing created with following id : ${result.insertedId}`);
     }else {
 
         console.log(`Already exists user ${newListing.name}. Please choose other email id`);
+        status = 1;
+    }
+    return status;
+}
+
+async function createAdmin(client, newListing) {
+
+    const existingUser = await client.db("login_register").collection("logAdmin").findOne({name : newListing.name});
+    var status = 0;
+    if(!existingUser) {
+    
+        const result = await client.db("login_register").collection("logAdmin").insertOne(newListing);
+        console.log(`New listing created with following id : ${result.insertedId}`);
+    }else {
+
+        console.log(`Already exists Admin ${newListing.name}. Please choose other email id`);
         status = 1;
     }
     return status;
@@ -83,6 +99,25 @@ async function findUser(client, credential) {
 async function findSP(client, credential) {
 
     const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
+
+    if(result && await bcrypt.compare(credential.password,result.password)) {
+        
+        console.log(`Found a listing in the collection with the name ${credential.name}`);
+        //console.log(result);
+
+        return true;
+        
+        
+    }else {
+
+        console.log(`No listings found with the name ${credential.name}`);
+        return false;
+    }
+}
+
+async function findAdmin(client, credential) {
+
+    const result = await client.db("login_register").collection("logAdmin").findOne({name : credential.name});
 
     if(result && await bcrypt.compare(credential.password,result.password)) {
         
@@ -199,15 +234,37 @@ async function findSPReturnPendingCustomer(client, credential) {
     return [];
 }
 
+async function findAdminReturnPendingSP(client, credential) {
+
+    const result = await client.db("login_register").collection("logAdmin").findOne({name : credential.name});
+    if(result) {
+
+        //console.log("result.customer = ",result.customer);
+        return result.pendingSP;
+    }
+    return [];
+}
+
 async function updateListingByNameDeletePendingCustomer(client, nameOfListing, updatedListing) {
 
     //console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $pull : { pendingCustomer : { id : updatedListing.id }}});
 }
 
+async function updateListingByNameDeletePendingSP(client, nameOfListing, updatedListing) {
+
+    //console.log("updatedListingByNameEditFieldCost = nameOfListing : ",nameOfListing,", updatedListing : ",updatedListing);
+    const result = await client.db("login_register").collection("logAdmin").updateOne({name : nameOfListing},{ $pull : { pendingSP : { id : updatedListing.id }}});
+}
+
 async function updateListingByNameAddCustomer(client, nameOfListing, updatedListing) {
 
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $push : updatedListing})
+}
+
+async function updateListingByNameAddSP(client, updatedListing) {
+
+    const result = await client.db("login_register").collection("logRegSP").insertOne(updatedListing.serviceProvider);
 }
 
 async function getImageUrl(client,nameOfListing) {
@@ -281,7 +338,12 @@ async function findSPReturnStoreNameAndSlogan(client, credential) {
     return {storeName : "", slogan : ""};
 }
 
+async function getSPList(client) {
 
+    const result = await client.db("login_register").collection("logRegSP").find({_id : { $ne : 0}})
+    .toArray()
+    return result;
+}
 
 
 app.get('/printHello',authenticateToken,(req,res)=>{
@@ -322,7 +384,7 @@ app.post('/splogin/registerSP',async (req, res)=>{
         await client.connect();
         //console.log(req.body.pno)
         const hashedPassword = await bcrypt.hash(req.body.password,10);
-        const status = await createSP(client,{
+        const status = await createSP(client,{pendingSP : {
 
             name : req.body.username,
             password : hashedPassword,
@@ -334,8 +396,8 @@ app.post('/splogin/registerSP',async (req, res)=>{
             customer : [],
             storeName : "",
             slogan : "",
-            pendingCustomer : [
-
+            pendingCustomer : [],
+/*
                 {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
                 {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Wash Basin Installation',contact:'12345'},
                 {id:3,pic : null, name: 'Salman Khan', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Motor Installation',contact:'12345'},
@@ -354,9 +416,51 @@ app.post('/splogin/registerSP',async (req, res)=>{
                 {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'},
                 {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
                 {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'}
-            ],
+            ],*/
             profilePic : null
             //file : req.body.file
+        }})
+        .then(user=>{
+            res.json("success");
+        })
+        .catch(err=>res.status(400).json("user already exists"));
+
+});
+
+app.post('/adminlogin/registeradmin',async (req, res)=>{
+
+    const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+    var client = new MongoClient(uri);
+        await client.connect();
+        //console.log(req.body.pno)
+        const hashedPassword = await bcrypt.hash(req.body.password,10);
+        const status = await createAdmin(client,{
+
+            name : req.body.username,
+            password : hashedPassword,
+            email : req.body.email,
+            pno:req.body.pno,
+            pendingSP : [ ]
+/*
+                {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
+                {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Wash Basin Installation',contact:'12345'},
+                {id:3,pic : null, name: 'Salman Khan', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Motor Installation',contact:'12345'},
+                {id:4,pic : null, name: 'Akshay Kumar', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Wash Basin Installation',contact:'12345'},
+                {id:5,pic : null, name: 'Gal Gadot', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Motor Installation',contact:'12345'},
+            
+                {id:6, pic : null, name: 'six', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Wash Basin Installation',contact:'12345'},
+                {id:7,pic : null, name: 'seven', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Water Tank Installation',contact:'12345'},
+                {id:8,pic : null, name: 'eight', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Motor Installation',contact:'12345'},
+                {id:9,pic : null, name: 'nine', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Water Tank Installation',contact:'12345'},
+                {id:10,pic : null, name: 'ten', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'},
+            
+            
+                {id:11, pic : null, name: 'Eleven', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
+                {id:12,pic : null, name: 'twelve', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Water Tank Installation',contact:'12345'},
+                {id:13,pic : null, name: 'thirteen', address: 'Pune, Vasai road, Block no.16', date: '20/03/2021 - 21/05/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'},
+                {id:14,pic : null, name: 'fourteen', address: 'Pune, Vasai road, Block no.16', date: '17/02/2021 - 20/04/2021',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
+                {id:15,pic : null, name: 'fifteen', address: 'Pune, Vasai road, Block no.16', date: '13/03/2021 - 20/09/2021',payment: 'Rs. 40,000',status:'red',service : 'Wash Basin Installation',contact:'12345'}
+            ]*/
         })
         .then(user=>{
             res.json("success");
@@ -418,6 +522,44 @@ app.post('/splogin/loginSP',async (req, res) => {
     
             await client.connect();
             const isFound = await findSP(client,{name : req.body.username, password : req.body.password});
+
+            if(isFound) {
+                
+                const user = {name : req.body.username};
+                const accessToken = jwt.sign(user,process.env.ACCESS_TOKEN_SECRET);
+                res.json({accessToken : accessToken});
+                res.status(201).send();
+            }else {
+                res.status(202).send();
+            }
+        } catch(e) {
+
+            console.error(e);
+            res.status(500).send();
+        }finally {
+
+            await client.close();
+        }
+        //res.status(201).send();
+    
+});
+
+
+app.post('/adminlogin/loginadmin',async (req, res) => {
+
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+        try {
+    
+            await client.connect();
+            const isFound = await findAdmin(client,{name : req.body.username, password : req.body.password});
 
             if(isFound) {
                 
@@ -720,6 +862,91 @@ app.get('/serviceproviders/pendingCustomer',authenticateToken,async (req,res)=>{
     }
 });
 
+
+app.get('/admin/pendingSP',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+            const PendingServiceProviders = await findAdminReturnPendingSP(client,{name : payload.name});
+
+            res.json({pendingSPList : PendingServiceProviders});
+            
+            if(PendingServiceProviders) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.get('/serviceProviders/getSPList',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        //const authHeader = req.headers['authorization']
+        //const token = authHeader && authHeader.split(' ')[1]
+        //if(token!=null) {
+            
+            const PendingServiceProviders = await getSPList(client);
+
+            console.log("Service providers list = ",PendingServiceProviders);
+            res.json({SPList : PendingServiceProviders});
+            
+            if(PendingServiceProviders) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        //}
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
 app.post('/serviceproviders/pendingCustomer/removeCustomer',authenticateToken,async (req,res)=>{
 
     //console.log("editSubService called");
@@ -742,6 +969,41 @@ app.post('/serviceproviders/pendingCustomer/removeCustomer',authenticateToken,as
             const payload = parseJwt(token);
                 
             await updateListingByNameDeletePendingCustomer(client,payload.name,{id : req.body.id});
+            
+            res.status(201).send();
+        }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/admin/pendingSP/removeSP',authenticateToken,async (req,res)=>{
+
+    //console.log("editSubService called");
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        if(token!=null) {
+            
+            const payload = parseJwt(token);
+                
+            await updateListingByNameDeletePendingSP(client,payload.name,{id : req.body.id});
             
             res.status(201).send();
         }
@@ -779,6 +1041,40 @@ app.post('/serviceproviders/addCustomer',authenticateToken,async (req,res)=>{
             await updateListingByNameAddCustomer(client,payload.name,{customer : req.body.newCustomer});
             res.status(201).send();
         }
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.post('/serviceproviders/addSP',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        //const authHeader = req.headers['authorization']
+        //const token = authHeader && authHeader.split(' ')[1]
+        //if(token!=null) {
+            
+            //const payload = parseJwt(token);
+            //console.log("req.body.newService = ",req.body.newService);
+            await updateListingByNameAddSP(client,{serviceProvider : req.body.newCustomer});
+            res.status(201).send();
+        //}
     } catch(e) {
 
         console.error(e);

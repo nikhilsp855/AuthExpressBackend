@@ -61,3 +61,17 @@ Content-Type: application/json
 {
     "newService" : {"name":"door","cost":"5000","days":"5"}
 }
+
+
+###
+
+POST http://localhost:4000/adminlogin/registeradmin
+Content-Type: application/json
+
+{
+
+    "email" : "manish@gmail.com",
+    "username" : "Manish",
+    "password" : "Manish@123",
+    "pno" : "123456789"
+}
