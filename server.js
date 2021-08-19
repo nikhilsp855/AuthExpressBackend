@@ -364,6 +364,32 @@ async function confirmBooking(client,credential,newentries){
     const result=await client.db("login_register").collection("logRegSP").updateOne({name : credential.name},{$push:newentries});
 }
 
+async function getUtilisedServicesList(client) {
+
+    const result = await client.db("login_register").collection("logAdmin").findOne({name : "Manish"});
+    if(result) {
+
+        //console.log("result.subServices = ",result.subServices);
+        return result.serviceUtilizedData;
+    }
+    return {
+        mensGrooming : 0, painter : 0, plumber : 0, cleaningService : 0, electricians : 0, carpenters : 0
+    };
+}
+
+async function getMonthlyServicesList(client) {
+
+    const result = await client.db("login_register").collection("logAdmin").findOne({name : "Manish"});
+    if(result) {
+
+        //console.log("result.subServices = ",result.subServices);
+        return result.monthlyServices;
+    }
+    return {
+        Jan : 0, Feb : 0, Mar : 0, Apr : 0, May : 0, Jun : 0, Jul : 0, Aug : 0, Sep : 0, Oct : 0, Nov : 0, Dec : 0
+    };
+}
+
 app.get('/printHello',authenticateToken,(req,res)=>{
 
     console.log('Hello');
@@ -458,7 +484,13 @@ app.post('/adminlogin/registeradmin',async (req, res)=>{
             password : hashedPassword,
             email : req.body.email,
             pno:req.body.pno,
-            pendingSP : [ ]
+            pendingSP : [],
+            serviceUtilizedData : {
+                mensGrooming : 10, painter : 5, plumber : 15, cleaningService : 10, electricians : 5, carpenters : 10
+            },
+            monthlyServices : {
+                Jan : 100, Feb : 200, Mar : 300, Apr : 250, May : 200, Jun : 250, Jul : 300, Aug : 350, Sep : 300, Oct : 250, Nov : 200, Dec : 300
+            }
 /*
                 {id:1, pic : null, name: 'Emma Watson', address: 'Pune, Vasai road, Block no.16', date: '17/07/2020 - 20/09/2020',payment: 'Rs. 40,000',status:'green',service : 'Motor Installation',contact:'12345'},
                 {id:2,pic : null, name: 'Dwayne Johnson', address: 'Pune, Vasai road, Block no.16', date: '25/01/2021 - 15/08/2021',payment: 'Rs. 40,000',status:'yellow',service : 'Wash Basin Installation',contact:'12345'},
@@ -1306,6 +1338,90 @@ app.get('/serviceproviders/updateDetails/getStoreNameAndSlogan',authenticateToke
                 res.status(202).send();
             }
         }
+    }catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.get('/admin/stats/getUtilisedServicesList',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        //const authHeader = req.headers['authorization']
+        //const token = authHeader && authHeader.split(' ')[1]
+        //if(token!=null) {
+            
+        //    const payload = parseJwt(token);
+            const data = await getUtilisedServicesList(client);
+
+            res.json(data);
+            
+            if(data) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        //}
+    }catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
+app.get('/admin/stats/getMonthlyServicesList',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        //const authHeader = req.headers['authorization']
+        //const token = authHeader && authHeader.split(' ')[1]
+        //if(token!=null) {
+            
+        //    const payload = parseJwt(token);
+            const data = await getMonthlyServicesList(client);
+
+            res.json(data);
+            
+            if(data) {
+            
+                res.status(201).send();
+            }else {
+            
+                res.status(202).send();
+            }
+        //}
     }catch(e) {
 
         console.error(e);
