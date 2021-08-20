@@ -317,6 +317,46 @@ async function getImageUrl(client,nameOfListing) {
 
 }
 
+async function getSPImageUrl(client,profilePic) {
+    
+    let fileDup = null;
+    let imageUrl = "";
+
+    try {
+        //await client.db("login_register").collection("logRegSP").findOne({name : nameOfListing})
+        await client.db("myFirstDatabase").collection("photos.files").findOne({filename : profilePic})
+            .then(file => {
+                fileDup = file;
+                return client.db("myFirstDatabase").collection("photos.chunks").findOne({files_id : file._id})
+            })
+            .then(chunkFile => {
+
+                const chunks = chunkFile.data.toString('base64');
+                //console.log("chunks = ",chunks);      
+                if(!chunks || chunks.length === 0){            
+                    //No data found            
+                    console.log("No data found");          
+                }else {
+                    let finalFile = 'data:' + fileDup.contentType + ';base64,' + chunks;        
+        /*res.render('imageView', {
+        title: 'Image File', 
+        message: 'Image loaded from MongoDB GridFS', 
+        imgurl: finalFile
+        });*/
+                    //console.log("finalFile = ",finalFile);
+                    imageUrl = finalFile;
+                }
+            })
+    }catch(err) {
+
+        console.log(err);
+    }
+
+    return imageUrl;
+
+}
+
+
 async function updateListingByNameSetStoreName(client, nameOfListing, updatedListing) {
 
     const result = await client.db("login_register").collection("logRegSP").updateOne({name : nameOfListing},{ $set : updatedListing})
@@ -543,6 +583,7 @@ app.post('/login/loginuser',async (req, res) => {
                 res.json({accessToken : accessToken});
                 res.status(201).send();
             }else {
+                res.json({accessToken : null});
                 res.status(202).send();
             }
         } catch(e) {
@@ -580,6 +621,7 @@ app.post('/splogin/loginSP',async (req, res) => {
                 res.json({accessToken : accessToken});
                 res.status(201).send();
             }else {
+                res.json({accessToken : null});
                 res.status(202).send();
             }
         } catch(e) {
@@ -618,6 +660,7 @@ app.post('/adminlogin/loginadmin',async (req, res) => {
                 res.json({accessToken : accessToken});
                 res.status(201).send();
             }else {
+                res.json({accessToken : null});
                 res.status(202).send();
             }
         } catch(e) {
@@ -1238,6 +1281,48 @@ app.get('/serviceproviders/updateDetails/retrieveImage',authenticateToken,async 
         await client.close();
     }
 });
+
+
+app.post('/serviceproviders/updateDetails/retrieveSPImage',authenticateToken,async (req,res)=>{
+
+    //console.log('Hello');
+    try {
+        
+        const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+        var client = new MongoClient(uri);
+    }catch {
+
+        res.status(500).send();
+    }
+
+    try {
+    
+        await client.connect();
+        //const authHeader = req.headers['authorization']
+        //const token = authHeader && authHeader.split(' ')[1]
+        //if(token!=null) {
+            
+           // const payload = parseJwt(token);
+            //console.log("req.body.newService = ",req.body.newService);
+
+            //console.log("Before");
+            const imageUrl = await getSPImageUrl(client,req.body.profilePic);
+            //console.log(imageUrl);
+            //console.log("Helloooo");
+            res.json({imageUrl:imageUrl});
+            //await updateListingByNameAddCustomer(client,payload.name,{customer : req.body.newCustomer});
+            res.status(201).send();
+        //}
+    } catch(e) {
+
+        console.error(e);
+        res.status(500).send();
+    }finally {
+
+        await client.close();
+    }
+});
+
 
 app.post('/serviceproviders/updateDetails/setStoreName',authenticateToken,async (req,res)=>{
 
