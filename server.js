@@ -22,7 +22,6 @@ app.use('/verify', require('./routes/verify'));
 
 
 const users = [];
-
 //const uri = "mongodb+srv://expressDB:ExpressService@cluster0.egbzj.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
 //const client = new MongoClient(uri);
 
@@ -399,9 +398,12 @@ async function BookingCustomer(client, credential) {
 
 
 async function confirmBooking(client,credential,newentries){
-    console.log(newentries)
-    console.log(credential)
-    const result=await client.db("login_register").collection("logRegSP").updateOne({name : credential.name},{$push:newentries});
+    await client.db("login_register").collection("logRegSP").updateOne({name : credential.name},{$push:newentries});
+    const result = await client.db("login_register").collection("logRegSP").findOne({name : credential.name});
+    if(result)
+    {
+        return result.servname;
+    }
 }
 
 async function getUtilisedServicesList(client) {
@@ -1517,6 +1519,111 @@ app.get('/admin/stats/getMonthlyServicesList',authenticateToken,async (req,res)=
     }
 });
 
+
+async function adminServicesDetails(client,_data) {
+    const result=await client.db("login_register").collection("logAdmin").findOne({name : "Manish"});
+    if(_data==="Plumber")
+    {
+    let count=result.serviceUtilizedData.plumber
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"serviceUtilizedData.plumber":count+1}});
+    }
+    else if(_data==="Grooming")
+    {
+    let count=result.serviceUtilizedData.mensGrooming
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"serviceUtilizedData.mensGrooming":count+1}});
+    }
+    else if(_data==="Painters")
+    {
+    let count=result.serviceUtilizedData.painter
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"serviceUtilizedData.painter":count+1}});
+    }
+    else if(_data==="Cleaning")
+    {
+    let count=result.serviceUtilizedData.cleaningService
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"serviceUtilizedData.cleaningService":count+1}});
+    }
+    else if(_data==="Electrician")
+    {
+    let count=result.serviceUtilizedData.electrician
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"serviceUtilizedData.electrician":count+1}});
+    }
+    else if(_data==="Carpenter")
+    {
+    let count=result.serviceUtilizedData.carpenters
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"serviceUtilizedData.carpenters":count+1}});
+    }
+    else if(_data==="Pest Control")
+    {
+    let count=result.serviceUtilizedData.pestcontrol
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"serviceUtilizedData.pestcontrol":count+1}});
+    }
+} 
+
+async function adminServiceMonths(client,_data){
+    const result=await client.db("login_register").collection("logAdmin").findOne({name : "Manish"});
+    if(_data[1]==="01")
+    {
+    let count1=result.monthlyServices.Jan
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Jan":count1+1}});
+    }
+    else if(_data[1]==="02")
+    {
+        let count1=result.monthlyServices.Feb
+        await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Feb":count1+1}});
+    }
+    else if(_data[1]==="03")
+    {
+        let count1=result.monthlyServices.Mar
+        await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Mar":count1+1}});
+    }
+    else if(_data[1]==="04")
+    {
+        let count1=result.monthlyServices.Apr
+        await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Apr":count1+1}});
+    }
+    else if(_data[1]==="05")
+    {
+        let count1=result.monthlyServices.May
+        await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.May":count1+1}});
+    }
+    else if(_data[1]==="06")
+    {
+        let count1=result.monthlyServices.Jun
+        await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Jun":count1+1}});
+    }
+    else if(_data[1]==="07")
+    {
+        let count1=result.monthlyServices.Jul
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Jul":count1+1}});
+    }
+    else if(_data[1]==="08")
+    {
+        let count1=result.monthlyServices.Aug
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Aug":count1+1}});
+    }
+    else if(_data[1]==="09")
+    {
+        let count1=result.monthlyServices.Sep
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Sep":count1+1}});
+    }
+    else if(_data[1]==="10")
+    {
+        let count1=result.monthlyServices.Oct
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Oct":count1+1}});
+    }
+    else if(_data[1]==="11")
+    {
+        let count1=result.monthlyServices.Nov
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Nov":count1+1}});
+    }
+    else if(_data[1]==="12")
+    {
+        let count1=result.monthlyServices.Dec
+    await client.db("login_register").collection("logAdmin").updateOne({name : "Manish"},{$set:{"monthlyServices.Dec":count1+1}});
+    }
+} 
+
+
 app.post('/confirmbooking',async (req,res)=>{
     try {
         
@@ -1530,8 +1637,14 @@ app.post('/confirmbooking',async (req,res)=>{
     await client.connect();
     console.log("req.body.pendingCustomers = ",req.body.pendingCustomers)
     console.log("req.body.providers = ",req.body.providers)
-    await confirmBooking(client,{name:req.body.providers},{pendingCustomer : req.body.pendingCustomers});
-   }
+    console.log(req.body.pendingCustomers.date)
+    const date=req.body.pendingCustomers.date
+    const split=date.split('-');
+    const data=await confirmBooking(client,{name:req.body.providers},{pendingCustomer : req.body.pendingCustomers});
+    await adminServicesDetails(client,data);
+    await adminServiceMonths(client,split);
+    res.json("success")
+}
    catch(e) {
 
     console.error(e);
