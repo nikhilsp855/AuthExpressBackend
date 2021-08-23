@@ -1623,6 +1623,11 @@ async function adminServiceMonths(client,_data){
     }
 } 
 
+app.get("/",function(req,res){
+
+    res.send("Working");
+});
+
 
 app.post('/confirmbooking',async (req,res)=>{
     try {
